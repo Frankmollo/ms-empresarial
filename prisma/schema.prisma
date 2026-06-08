@@ -1,0 +1,50 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Distrito {
+  id                  Int                   @id @default(autoincrement())
+  nombre              String                @unique
+  asignaciones        AsignacionDistrito[]
+}
+
+model UsuarioAdministrativo {
+  id                  Int                   @id @default(autoincrement())
+  nombre              String
+  correo              String                @unique
+  password            String
+  rol                 String                @default("analista") // "maestro" o "analista"
+  asignaciones        AsignacionDistrito[]
+}
+
+model AsignacionDistrito {
+  id                    Int                   @id @default(autoincrement())
+  usuarioId             Int
+  distritoId            Int
+  usuarioAdministrativo UsuarioAdministrativo @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  distrito              Distrito              @relation(fields: [distritoId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, distritoId]) // Evita duplicados en la asignación
+}
+
+model Cliente {
+  id        Int       @id @default(autoincrement())
+  nombre    String
+  cedula    String?   @unique
+  direccion String?
+  medidores Medidor[]
+}
+
+model Medidor {
+  id        Int      @id @default(autoincrement())
+  codigo    String   @unique
+  tipo      String?
+  estado    String?
+  clienteId Int
+  cliente   Cliente  @relation(fields: [clienteId], references: [id])
+}
