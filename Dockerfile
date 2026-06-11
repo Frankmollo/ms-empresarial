@@ -1,5 +1,8 @@
 # Usar una imagen oficial de Node.js ligera como base
-FROM node:20-alpine
+FROM node:20-slim
+
+# Instalar OpenSSL para compatibilidad con Prisma
+RUN apt-get update -y && apt-get install -y openssl
 
 # Establecer el directorio de trabajo dentro del contenedor
 WORKDIR /usr/src/app

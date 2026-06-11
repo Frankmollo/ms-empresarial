@@ -18,8 +18,10 @@ model UsuarioAdministrativo {
   nombre              String
   correo              String                @unique
   password            String
-  rol                 String                @default("analista") // "maestro" o "analista"
+  rol                 String                @default("analista") // "maestro", "analista" o "tecnico"
   asignaciones        AsignacionDistrito[]
+  reportes            ReporteExcel[]
+  expedientes         Expediente[]
 }
 
 model AsignacionDistrito {
@@ -46,5 +48,113 @@ model Medidor {
   tipo      String?
   estado    String?
   clienteId Int
-  cliente   Cliente  @relation(fields: [clienteId], references: [id])
+  cliente   Cliente      @relation(fields: [clienteId], references: [id])
+  expedientes Expediente[]
+}
+
+model ReporteExcel {
+  id                    Int                @id @default(autoincrement())
+  nombreArchivo         String
+  fechaSubida           DateTime           @default(now())
+  usuarioId             Int
+  usuario               UsuarioAdministrativo @relation(fields: [usuarioId], references: [id])
+  cuentasAnomalas       CuentaSospechosa[]
+  
+  // Campos del frontend
+  estado                String             @default("PROCESADO")
+  total_registros       Int                @default(0)
+  registros_sospechosos Int                @default(0)
+  periodo               String?
+  error_detalle         String?
+}
+
+model CuentaSospechosa {
+  id                    Int           @id @default(autoincrement())
+  reporteId             Int
+  codigoMedidor         String
+  motivoAnomalia        String?
+  estado                String        @default("PENDIENTE")
+  reporte               ReporteExcel  @relation(fields: [reporteId], references: [id], onDelete: Cascade)
+  
+  // Campos del frontend
+  numero_cuenta         String?
+  nombre_cliente        String?
+  direccion             String?
+  sector                String?
+  circuito              String?
+  nivel_riesgo          String?
+  consumo_promedio      Float?
+  consumo_actual        Float?
+  variacion_porcentual  Float?
+  desequilibrio_fase    Boolean       @default(false)
+  factor_desequilibrio  Float?
+  createdAt             DateTime      @default(now())
+  
+  expedientes           Expediente[]  @relation("CuentaExpediente")
+}
+
+model Expediente {
+  id                    Int                   @id @default(autoincrement())
+  codigoExpediente      String                @unique
+  fechaCreacion         DateTime              @default(now())
+  estado                String                @default("ABIERTO")
+  medidorId             Int?
+  medidor               Medidor?              @relation(fields: [medidorId], references: [id])
+  usuarioId             Int
+  usuario               UsuarioAdministrativo @relation(fields: [usuarioId], references: [id])
+  bitacoras             BitacoraExpediente[]
+  
+  // Relacion con CuentaSospechosa
+  cuentaId              Int?
+  cuenta                CuentaSospechosa?     @relation("CuentaExpediente", fields: [cuentaId], references: [id])
+
+  // Campos del frontend
+  numero_cuenta         String?
+  nombre_cliente        String?
+  direccion             String?
+  sector                String?
+  tipo_irregularidad    String?
+  prioridad             String                @default("MEDIA")
+  fecha_apertura        DateTime              @default(now())
+  fecha_inspeccion      DateTime?
+  fecha_cierre          DateTime?
+  tecnico_asignado      String?
+  observaciones         String?
+  energia_sustraida_kwh Float?
+  monto_recuperar       Float?
+  coordenadas_lat       Float?
+  coordenadas_lng       Float?
+  google_maps_url       String?
+  codigo_catastral      String?
+  ubicacion_tecnico_lat Float?
+  ubicacion_tecnico_lng Float?
+  ubicacion_tecnico_fecha DateTime?
+  ubicacion_tecnico_maps_url String?
+  createdAt             DateTime              @default(now())
+}
+
+model BitacoraExpediente {
+  id               Int        @id @default(autoincrement())
+  expedienteId     Int
+  expediente       Expediente @relation(fields: [expedienteId], references: [id], onDelete: Cascade)
+  fechaRegistro    DateTime   @default(now())
+  accion           String
+  detalles         String?
+  usuario          String?
+}
+
+model ReporteEstadistico {
+  id                       Int      @id @default(autoincrement())
+  tipo                     String
+  periodo_inicio           String
+  periodo_fin              String
+  total_cuentas_analizadas Int      @default(0)
+  total_sospechosas        Int      @default(0)
+  total_expedientes        Int      @default(0)
+  expedientes_confirmados  Int      @default(0)
+  energia_recuperada_kwh   Float    @default(0)
+  monto_recuperado         Float    @default(0)
+  generado_por             String?
+  datos_json               String?
+  createdAt                DateTime @default(now())
 }

@@ -1,11 +1,19 @@
 const express = require('express');
 const { ApolloServer } = require('apollo-server-express');
+const { graphqlUploadExpress } = require('graphql-upload');
 const { typeDefs } = require('./schema/typeDefs');
 const { resolvers } = require('./schema/resolvers');
 const { PrismaClient } = require('@prisma/client');
 
+const { createProxyMiddleware } = require('http-proxy-middleware');
+
 const prisma = new PrismaClient();
 const app = express();
+
+app.use('/api/dms', createProxyMiddleware({ target: 'http://host.docker.internal:8081', changeOrigin: true, pathRewrite: (path, req) => req.originalUrl.replace('/api/dms', '/api') }));
+app.use('/api/s3', createProxyMiddleware({ target: 'http://host.docker.internal:4566', changeOrigin: true, pathRewrite: (path, req) => req.originalUrl.replace('/api/s3', '') }));
+
+app.use(graphqlUploadExpress({ maxFileSize: 10000000, maxFiles: 1 }));
 
 async function startServer() {
   const server = new ApolloServer({
